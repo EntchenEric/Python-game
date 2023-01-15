@@ -66,53 +66,76 @@ objs = []
 stars = []
 coins = []
 
+upgrades = {
+    "bettercannon" : {
+        "cost" : 10,
+        "level" : 1,
+        "costinc" : 1.5
+    },
+    "airresistance" : {
+        "cost" : 10,
+        "level" : 1,
+        "costinc" : 1.55
+    },
+    "antigravityboots" : {
+        "cost" : 10,
+        "level" : 1,
+        "costinc" : 1.8
+    },
+    "morecoins" : {
+        "cost" : 10,
+        "level" : 1,
+        "costinc" : 3.5
+    },
+    "rocketboost" : {
+        "cost" : 7000,
+        "level" : 1,
+        "costinc" : 0.5,
+        "unlocked" : False
+    },
+    "rocketboostcooldown" : {
+        "cost" : 10,
+        "level" : 1,
+        "costinc" : 5
+    },
+    "strongerrocketboost" : {
+        "cost" : 10,
+        "level" : 1,
+        "costinc" : 7
+    }
+}
+
+
 def save():
     #TODO: Speichern einbauen
     #Dinge die gespeichert werden sollen:
     #Geld
     #Einstellungen
     #Alle statistiken
-    #Upgrades
     global cash
 
     savegamedict = {}
 
     savegamedict["cash"] = cash
+    savegamedict["upgrades"] = upgrades
 
 
-
-    encoded_savegame = str(savegamedict)
-    encoded_savegame_bytes = encoded_savegame.encode("ascii")
-
-    base64_bytes = base64.b64encode(encoded_savegame_bytes)
-    base64_string = base64_bytes.decode("ascii")
-
-    f = open("savegame.sav", "w")
-    f.write(base64_string)
-    f.close()
+    with open("savegame.json", "w") as file:
+        json.dump(savegamedict, file)
 
 def load():
     #TODO: Laden einbauen
     #Alles was gespeichert wird soll auch geladen werden
     global cash
+    global upgrades
     try:
-        f = open("savegame.sav", "r")
+            with open('savegame.json', 'r') as file:
+                data = json.load(file)
+                cash = data["cash"]
+                upgrades = data["upgrades"]
     except:
-        f = open("savegame.sav", "w")
-        f.write("")
-        f.close
-        f = open("savegame.sav", "w")
-    base64_string = f.read()
-    base64_bytes = base64_string.encode("ascii")
-
-    savegame_bytes = base64.b64decode(base64_bytes)
-    savegame_string = savegame_bytes.decode("ascii")
-    json_acceptable_string = savegame_string.replace("'", "\"")
-    savegame = json.loads(json_acceptable_string)
-    try:
-        cash = savegame["cash"]
-    except:
-        pass
+        raise
+    
 
 class Gameobj:
 
@@ -162,6 +185,9 @@ class Button:
 
 
 def change_to_game_scene():
+    global cash
+    global coins_this_round
+    cash += coins_this_round
     save()
     buttons.clear()
     global is_awaiting_cannon_angle_stop
@@ -178,7 +204,6 @@ def change_to_game_scene():
     is_grounded = False
     global coordinates_now
     coordinates_now = [0, 0]
-    global coins_this_round
     coins_this_round = 0
     global PenguinDistanceVel
     PenguinDistanceVel = 0
@@ -193,7 +218,7 @@ def change_to_game_scene():
 
     for _ in range(100):
         stars.append(pygame.Rect(random.randint(-200, WIDTH + 200), random.randint(-200, HEIGHT + 200), STARWIDTH, STARHEIGHT))
-    for _ in range(7):
+    for _ in range(7 + upgrades["morecoins"]["level"]):
         coins.append(pygame.Rect(random.randint(-200, WIDTH + 200), random.randint(-200, HEIGHT + 200), COINWIDTH, COINHEIGHT))
     draw_scene("game")
 
@@ -219,6 +244,10 @@ def change_to_stats_scene():
     draw_scene("stats")
 
 def change_to_main_menu():
+    global cash
+    global coins_this_round
+    cash += coins_this_round
+    coins_this_round = 0
     save()
     buttons.clear()
     global is_in_game
@@ -232,6 +261,9 @@ def quitgame():
 
 
 def draw_scene(screentype):
+    global cash
+    global upgrades
+
     if screentype == "mainmenu":
         WIN.fill((COLORS["gray"]))
         testbutton = Button("try to fly", (WIDTH * 0.8, HEIGHT * 0.85), 80, change_to_game_scene)
@@ -268,20 +300,20 @@ def draw_scene(screentype):
         pygame.draw.rect(WIN, COLORS["black"], pygame.Rect(0, HEIGHT - HEIGHT * 0.2, WIDTH, HEIGHT * 0.2))
         
         font = pygame.font.SysFont("Arial", 30)
-        speed = font.render(f"Speed: {int(PenguinDistanceVel)} Km/H", 1, pygame.Color("White"))
-        WIN.blit(speed, (WIDTH * 0.1, HEIGHT - HEIGHT * 0.15))
+        text = font.render(f"text: {int(PenguinDistanceVel)} Km/H", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.1, HEIGHT - HEIGHT * 0.15))
     
         font = pygame.font.SysFont("Arial", 30)
-        speed = font.render(f"Height: {int(coordinates_now[1] / 100)}m", 1, pygame.Color("White"))
-        WIN.blit(speed, (WIDTH * 0.1, HEIGHT - HEIGHT * 0.1))
+        text = font.render(f"Height: {int(coordinates_now[1] / 100)}m", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.1, HEIGHT - HEIGHT * 0.1))
 
         font = pygame.font.SysFont("Arial", 30)
-        speed = font.render(f"Traveled Distance: {int(coordinates_now[0] / 100)}m", 1, pygame.Color("White"))
-        WIN.blit(speed, (WIDTH * 0.3, HEIGHT - HEIGHT * 0.15))
+        text = font.render(f"Traveled Distance: {int(coordinates_now[0] / 100)}m", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.3, HEIGHT - HEIGHT * 0.15))
 
         font = pygame.font.SysFont("Arial", 30)
-        speed = font.render(f"Coins collected: {int(coins_this_round)}", 1, pygame.Color("White"))
-        WIN.blit(speed, (WIDTH * 0.3, HEIGHT - HEIGHT * 0.1))
+        text = font.render(f"Coins collected: {int(coins_this_round)}", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.3, HEIGHT - HEIGHT * 0.1))
 
 
 
@@ -346,8 +378,8 @@ def draw_scene(screentype):
                     Penguin.y -= 1
                 coordinates_now[0] += PenguinDistanceVel
                 coordinates_now[1] += PenguinHeightVel
-                PenguinHeightVel -= GRAVITATION
-                PenguinDistanceVel -= GRAVITATION * 0.2
+                PenguinHeightVel -= GRAVITATION / (1 + (upgrades["antigravityboots"]["level"] / 8))
+                PenguinDistanceVel -= (GRAVITATION * 0.2)  / (1 + (upgrades["airresistance"]["level"] / 8))
 
                 WIN.blit(pygame.transform.rotate(PENGUIN, rot), (Penguin.x, Penguin.y))
                 finalrot = rot
@@ -370,13 +402,12 @@ def draw_scene(screentype):
             else:
                 PenguinDistanceVel = 0
                 PenguinHeightVel = 0
-                global cash
-                cash += coins_this_round
+
                 WIN.blit(pygame.transform.rotate(PENGUIN, finalrot), (Penguin.x, Penguin.y))
                 pygame.draw.rect(WIN, COLORS["black"], pygame.Rect(WIDTH / 2 - (WIDTH * 0.3), HEIGHT / 2 - (HEIGHT * 0.2), WIDTH * 0.6, HEIGHT * 0.2))
                 font = pygame.font.SysFont("Arial", 30)
-                speed = font.render(f"Du bist stecken geblieben. Du hast {coins_this_round} Münzen eingesammelt!", 1, pygame.Color("White"))
-                WIN.blit(speed, (WIDTH / 2 - (WIDTH * 0.3), HEIGHT / 2 - (HEIGHT * 0.2)))
+                text = font.render(f"Du bist stecken geblieben. Du hast {coins_this_round} Münzen eingesammelt!", 1, pygame.Color("White"))
+                WIN.blit(text, (WIDTH / 2 - (WIDTH * 0.3), HEIGHT / 2 - (HEIGHT * 0.2)))
                 backtomenubutton = Button("Back to menu", (WIDTH / 2 - (WIDTH * 0.3), HEIGHT / 2 - (HEIGHT * 0.2) + HEIGHT * 0.05), 50, change_to_main_menu)
                 backtomenubutton.show()
                 restartbutton = Button("restart", (WIDTH / 2 - (WIDTH * 0.1), HEIGHT / 2 - (HEIGHT * 0.2) + HEIGHT * 0.05), 50, change_to_game_scene)
@@ -427,10 +458,126 @@ def draw_scene(screentype):
         #Raketenboost besser machen
         WIN.fill((COLORS["gray"]))
         
+        def upgradecannon():
+            global cash
+            if upgrades["bettercannon"]["cost"] <= cash:
+                cash -= upgrades["bettercannon"]["cost"]
+                upgrades["bettercannon"]["cost"] = int(upgrades["bettercannon"]["costinc"] * upgrades["bettercannon"]["cost"])
+                upgrades["bettercannon"]["level"] += 1
+                change_to_upgrades_scene()
+
+        btn = Button(f"Better Cannon", (WIDTH * 0.05, HEIGHT * 0.1), 60, upgradecannon)
+        btn.show()
+        font = pygame.font.SysFont("Arial", 60)
+        text = font.render(f"Costs: {upgrades['bettercannon']['cost']}", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.05, HEIGHT * 0.17))
+
+        def lessAirResistance():
+            global cash
+
+            if upgrades["airresistance"]["cost"] <= cash:
+                cash -= upgrades["airresistance"]["cost"]
+                upgrades["airresistance"]["cost"] = int(upgrades["airresistance"]["costinc"] * upgrades["airresistance"]["cost"])
+                upgrades["airresistance"]["level"] += 1
+                change_to_upgrades_scene()
+
+
+        btn = Button(f"less air resistance", (WIDTH * 0.55, HEIGHT * 0.1), 60, lessAirResistance)
+        btn.show()
+        font = pygame.font.SysFont("Arial", 60)
+        text = font.render(f"Costs: {upgrades['airresistance']['cost']}", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.55, HEIGHT * 0.17))
+
+        def lessAirResistance():
+            global cash
+
+            if upgrades["antigravityboots"]["cost"] <= cash:
+                cash -= upgrades["antigravityboots"]["cost"]
+                upgrades["antigravityboots"]["cost"] = int(upgrades["antigravityboots"]["costinc"] * upgrades["antigravityboots"]["cost"] )
+                upgrades["antigravityboots"]["level"] += 1
+                change_to_upgrades_scene()
+                
+
+        btn = Button(f"Anti-Gravity-Boots", (WIDTH * 0.05, HEIGHT * 0.3), 60, lessAirResistance)
+        btn.show()
+        font = pygame.font.SysFont("Arial", 60)
+        text = font.render(f"Costs: {upgrades['antigravityboots']['cost']}", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.05, HEIGHT * 0.37))
+
+        def morecoins():
+            global cash
+
+            if upgrades["morecoins"]["cost"] <= cash:
+                cash -= upgrades["morecoins"]["cost"]
+                upgrades["morecoins"]["cost"] = int(upgrades["morecoins"]["costinc"] * upgrades["morecoins"]["cost"])
+                upgrades["morecoins"]["level"] += 1
+                change_to_upgrades_scene()
+
+
+        btn = Button(f"more coins", (WIDTH * 0.55, HEIGHT * 0.3), 60, morecoins)
+        btn.show()
+        font = pygame.font.SysFont("Arial", 60)
+        text = font.render(f"Costs: {upgrades['morecoins']['cost']}", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.55, HEIGHT * 0.37))
+
+        def rocketboost():
+            global cash
+
+            if upgrades["rocketboost"]["cost"] <= cash:
+                cash -= upgrades["rocketboost"]["cost"]
+                upgrades["rocketboost"]["unlocked"] = True
+                change_to_upgrades_scene()
+
+        
+        if upgrades['rocketboost']['unlocked']:
+            btn = Button(f"unlocked", (WIDTH * 0.05, HEIGHT * 0.5), 60, change_to_upgrades_scene)
+        else:
+            btn = Button(f"rocketboost", (WIDTH * 0.05, HEIGHT * 0.5), 60, rocketboost)
+        btn.show()
+        font = pygame.font.SysFont("Arial", 60)
+        text = font.render(f"Costs: {upgrades['rocketboost']['cost']}", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.05, HEIGHT * 0.57))
+
+        def lessrocketboostcooldown():
+            global cash
+
+            if upgrades["rocketboostcooldown"]["cost"] <= cash:
+                cash -= upgrades["rocketboostcooldown"]["cost"]
+                upgrades["rocketboostcooldown"]["cost"] = int(upgrades["morecoins"]["costinc"] * upgrades["rocketboostcooldown"]["cost"])
+                upgrades["rocketboostcooldown"]["level"] += 1
+                change_to_upgrades_scene()
+
+
+        btn = Button(f"less Rocketboost cooldown", (WIDTH * 0.55, HEIGHT * 0.5), 60, lessrocketboostcooldown)
+        btn.show()
+        font = pygame.font.SysFont("Arial", 60)
+        text = font.render(f"Costs: {upgrades['rocketboostcooldown']['cost']}", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.55, HEIGHT * 0.57))
+
+        def strongerrocketboost():
+            global cash
+
+            if upgrades["strongerrocketboost"]["cost"] <= cash:
+                cash -= upgrades["strongerrocketboost"]["cost"]
+                upgrades["strongerrocketboost"]["cost"] *= int(upgrades["morecoins"]["costinc"])
+                upgrades["strongerrocketboost"]["level"] += 1
+                change_to_upgrades_scene()
+
+        btn = Button(f"stronger Rocketboost", (WIDTH * 0.05, HEIGHT * 0.7), 60, strongerrocketboost)
+        btn.show()
+        font = pygame.font.SysFont("Arial", 60)
+        text = font.render(f"Costs: {upgrades['strongerrocketboost']['cost']}", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.05, HEIGHT * 0.77))
+
+        font = pygame.font.SysFont("Arial", 60)
+        text = font.render(f"Your Couins: {cash}", 1, pygame.Color("White"))
+        WIN.blit(text, (WIDTH * 0.05, HEIGHT * 0.01))
+
 
 
         backButton = Button("Back", (WIDTH * 0.05, HEIGHT - HEIGHT * 0.15), 80, change_to_main_menu)
         backButton.show()
+        
 
     elif screentype == "settings":
         #TODO: Einstellungen hinzufügen
@@ -482,7 +629,7 @@ def main():
                     if event.key == pygame.K_e:
                         print("Kraft wird erhöht.")
                         global cannon_power
-                        cannon_power += 1
+                        cannon_power += upgrades["bettercannon"]["level"]
 
 
         if is_in_game:
