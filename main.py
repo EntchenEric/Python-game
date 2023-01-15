@@ -7,7 +7,8 @@ COLORS = {
     "blue" : (0, 0, 50),
     "white" : (255, 255, 255),
     "black" : (0, 0, 0),
-    "green" : (0, 255, 0)
+    "green" : (0, 255, 0),
+    "nightsky" : (7, 11, 52)
 }
 pygame.init()
 WIDTH, HEIGHT = 1500, 844
@@ -25,8 +26,10 @@ CANNON_WHEEL = pygame.transform.scale(CANNON_WHEEL_IMAGE, (CANNONWIDTH, CANNONHE
 FPS = 60
 
 STARWIDTH, STARHEIGHT = 10, 10
+COINWIDTH, COINHEIGHT = 50, 50
 
 STAR = pygame.transform.scale(pygame.image.load(os.path.join("Assets", "Star.png")), (STARWIDTH, STARHEIGHT))
+COIN = pygame.transform.scale(pygame.image.load(os.path.join("Assets", "Silvercoin.png")), (COINWIDTH, COINHEIGHT))
 
 rotationmodifyer = 1
 is_in_game = False
@@ -51,12 +54,15 @@ PenguinHeightVel = 0
 coordinates_now = [0, 0]
 is_grounded = False
 finalrot = 0
+coins_this_round = 0
+cash = 0
 
 penguincords = (0, 0)
 
 objs = []
 
 stars = []
+coins = []
 
 class Gameobj:
 
@@ -119,21 +125,50 @@ def change_to_game_scene():
     cannon_power_timer = FPS * 3
     global is_grounded
     is_grounded = False
+    global coordinates_now
+    coordinates_now = [0, 0]
+    global coins_this_round
+    coins_this_round = 0
+    global PenguinDistanceVel
+    PenguinDistanceVel = 0
+    global PenguinDistance 
+    PenguinDistance = 0
+    global PenguinHeightVel
+    PenguinHeightVel = 0
+    global PenguinHeight
+    PenguinHeight = 0
+    global cannon_power
+    cannon_power = 0
+
     for _ in range(100):
         stars.append(pygame.Rect(random.randint(-200, WIDTH + 200), random.randint(-200, HEIGHT + 200), STARWIDTH, STARHEIGHT))
+    for _ in range(7):
+        coins.append(pygame.Rect(random.randint(-200, WIDTH + 200), random.randint(-200, HEIGHT + 200), COINWIDTH, COINHEIGHT))
     draw_scene("game")
 
 def change_to_settings_scene():
     buttons.clear()
+    global is_in_game
+    is_in_game = False
     draw_scene("settings")
 
 def change_to_upgrades_scene():
     buttons.clear()
+    global is_in_game
+    is_in_game = False
     draw_scene("upgrades")
 
 def change_to_stats_scene():
     buttons.clear()
+    global is_in_game
+    is_in_game = False
     draw_scene("stats")
+
+def change_to_main_menu():
+    buttons.clear()
+    global is_in_game
+    is_in_game = False
+    draw_scene("mainmenu")
 
 def quitgame():
     exit_game()
@@ -155,22 +190,42 @@ def draw_scene(screentype):
         quitbutton.show()
     
 
-    if screentype == "game":
+    elif screentype == "game":
         global is_in_game
         is_in_game = True
-        WIN.fill((COLORS["white"]))
+        WIN.fill((COLORS["nightsky"]))
         global Ingame_Cannon_Rotation
         global rotationmodifyer
         global is_awaiting_cannon_power_spam
         global PenguinDistanceVel
         global PenguinHeightVel
+        global coins_this_round
+        global Penguin
         global finalrot
 
         for star in stars:
             WIN.blit(STAR, (star.x, star.y))
 
+        for coin in coins:
+            WIN.blit(COIN, (coin.x, coin.y))
+
         pygame.draw.rect(WIN, COLORS["black"], pygame.Rect(0, HEIGHT - HEIGHT * 0.2, WIDTH, HEIGHT * 0.2))
         
+        font = pygame.font.SysFont("Arial", 30)
+        speed = font.render(f"Speed: {int(PenguinDistanceVel)} Km/H", 1, pygame.Color("White"))
+        WIN.blit(speed, (WIDTH * 0.1, HEIGHT - HEIGHT * 0.15))
+    
+        font = pygame.font.SysFont("Arial", 30)
+        speed = font.render(f"Height: {int(coordinates_now[1] / 100)}m", 1, pygame.Color("White"))
+        WIN.blit(speed, (WIDTH * 0.1, HEIGHT - HEIGHT * 0.1))
+
+        font = pygame.font.SysFont("Arial", 30)
+        speed = font.render(f"Traveled Distance: {int(coordinates_now[0] / 100)}m", 1, pygame.Color("White"))
+        WIN.blit(speed, (WIDTH * 0.3, HEIGHT - HEIGHT * 0.15))
+
+        font = pygame.font.SysFont("Arial", 30)
+        speed = font.render(f"Coins collected: {int(coins_this_round)}", 1, pygame.Color("White"))
+        WIN.blit(speed, (WIDTH * 0.3, HEIGHT - HEIGHT * 0.1))
 
 
 
@@ -179,17 +234,32 @@ def draw_scene(screentype):
                 star.x -= PenguinDistanceVel
                 star.y += PenguinHeightVel
                 if star.x < -100:
-                    star.x = WIDTH + 100
+                    star.x = WIDTH + random.randint(10, 200)
                 if star.y < -300:
-                    star.y = HEIGHT + 200
+                    star.y = HEIGHT + random.randint(10, 200)
                 elif star.y > HEIGHT + 300:
-                    star.y = -200
+                    star.y = random.randint(-200, -10)
+            for coin in coins:
+                coin.x -= PenguinDistanceVel
+                coin.y += PenguinHeightVel
+                if coin.x < -100:
+                    coin.x = WIDTH + 100
+                if coin.y < -300:
+                    coin.y = HEIGHT + 200
+                elif coin.y > HEIGHT + 300:
+                    coin.y = -200
+                if coin.colliderect(Penguin):
+                    coin.x = -50
+                    coin.y = -50
+                    
+                    coins_this_round += 1
+
             global cannon_wheel
             global CANNON_WHEEL
             global cannon_barrel
             global CANNON_BARREL
             global is_grounded
-            
+
             if cannon_barrel.x > -500:
                 cannon_barrel.x -= 1 * PenguinDistanceVel
             if cannon_barrel.y < HEIGHT + 500:
@@ -208,12 +278,12 @@ def draw_scene(screentype):
             for obj in objs:
                 obj.draw_if_needed()
             rot = PenguinHeightVel - 90
-            if rot < -180:
-                rot = -180
-            if rot > -20:
-                rot = -20
+            if rot < -130:
+                rot = -130
+            if rot > -50:
+                rot = -50
             if not is_grounded:
-                global Penguin
+                print(coordinates_now)
                 if Penguin.x != WIDTH / 2:
                     Penguin.x += 1
                 if Penguin.y != int(HEIGHT / 2 - HEIGHT * 0.2):
@@ -222,22 +292,41 @@ def draw_scene(screentype):
                 coordinates_now[1] += PenguinHeightVel
                 PenguinHeightVel -= GRAVITATION
                 PenguinDistanceVel -= GRAVITATION * 0.2
+
+                WIN.blit(pygame.transform.rotate(PENGUIN, rot), (Penguin.x, Penguin.y))
+                finalrot = rot
+                if int(coordinates_now[1]) < HEIGHT- HEIGHT * 0.2:
+                    print("runter!!")
+                    print(Penguin.y)
+                    if Penguin.y < HEIGHT * 0.6:
+                        print("alles gut!")
+                        if Penguin.y + PenguinDistanceVel < HEIGHT * 0.6 and not coordinates_now[1] - PenguinDistanceVel <= 0:
+                            Penguin.y += PenguinDistanceVel
+                        elif coordinates_now[1] - PenguinDistanceVel <= 0:
+                            print("WEG!!!")
+                            Penguin.y = HEIGHT * 0.6
+                        else:
+                            Penguin.y = HEIGHT * 0.6
                 if PenguinDistanceVel < 0:
                     PenguinDistanceVel = 0
                 if coordinates_now[1] <= 0:
-                    
                     is_grounded = True
-                WIN.blit(pygame.transform.rotate(PENGUIN, rot), (Penguin.x, Penguin.y))
-                finalrot = rot
-                
             else:
                 PenguinDistanceVel = 0
                 PenguinHeightVel = 0
-                print(Penguin.y, HEIGHT * 0.2, HEIGHT)
-                if Penguin.y < HEIGHT * 0.68:
-                    Penguin.y += 10
+                global cash
+                cash += coins_this_round
                 WIN.blit(pygame.transform.rotate(PENGUIN, finalrot), (Penguin.x, Penguin.y))
-                
+                pygame.draw.rect(WIN, COLORS["black"], pygame.Rect(WIDTH / 2 - (WIDTH * 0.3), HEIGHT / 2 - (HEIGHT * 0.2), WIDTH * 0.6, HEIGHT * 0.2))
+                font = pygame.font.SysFont("Arial", 30)
+                speed = font.render(f"Du bist stecken geblieben. Du hast {coins_this_round} Münzen eingesammelt!", 1, pygame.Color("White"))
+                WIN.blit(speed, (WIDTH / 2 - (WIDTH * 0.3), HEIGHT / 2 - (HEIGHT * 0.2)))
+                backtomenubutton = Button("Back to menu", (WIDTH / 2 - (WIDTH * 0.3), HEIGHT / 2 - (HEIGHT * 0.2) + HEIGHT * 0.05), 50, change_to_main_menu)
+                backtomenubutton.show()
+                restartbutton = Button("restart", (WIDTH / 2 - (WIDTH * 0.1), HEIGHT / 2 - (HEIGHT * 0.2) + HEIGHT * 0.05), 50, change_to_game_scene)
+                restartbutton.show()
+
+
 
 
 
@@ -267,8 +356,21 @@ def draw_scene(screentype):
 
             cannon_wheel = pygame.Rect(WIDTH * 0.1, HEIGHT - CANNONHEIGHT - HEIGHT * 0.2, CANNONWIDTH, CANNONHEIGHT)
             WIN.blit(CANNON_WHEEL, (cannon_wheel.x, cannon_wheel.y))
-            PenguinHeightVel = cannon_power
-            PenguinDistanceVel = cannon_power
+            PenguinHeightVel = cannon_power + 50
+            PenguinDistanceVel = cannon_power + 30
+
+    elif screentype == "upgrades":
+        #TODO Upgrades hinzufügen
+        #Upgrade Ideen:
+        #Bessere Kanone => Mehr CannonPower pro Klicken
+        #Ergodynamischerer Pinguin => Weniger Luftwiederstand
+        #Anti-Gravitations-Schuhe => Weniger Anziehungskraft
+        #Mehr Münzen
+        #Raketenboost => Ein Boost um sich bisschen nach vorne zu boosten
+        #Raketenboost cooldown verringern
+        #Raketenboost besser machen
+        
+
 
 
 
