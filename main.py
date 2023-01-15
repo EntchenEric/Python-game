@@ -1,6 +1,8 @@
 import pygame
 import os
 import random
+import json
+import base64
 
 COLORS = {
     "gray" : (105, 105, 105),
@@ -64,6 +66,54 @@ objs = []
 stars = []
 coins = []
 
+def save():
+    #TODO: Speichern einbauen
+    #Dinge die gespeichert werden sollen:
+    #Geld
+    #Einstellungen
+    #Alle statistiken
+    #Upgrades
+    global cash
+
+    savegamedict = {}
+
+    savegamedict["cash"] = cash
+
+
+
+    encoded_savegame = str(savegamedict)
+    encoded_savegame_bytes = encoded_savegame.encode("ascii")
+
+    base64_bytes = base64.b64encode(encoded_savegame_bytes)
+    base64_string = base64_bytes.decode("ascii")
+
+    f = open("savegame.sav", "w")
+    f.write(base64_string)
+    f.close()
+
+def load():
+    #TODO: Laden einbauen
+    #Alles was gespeichert wird soll auch geladen werden
+    global cash
+    try:
+        f = open("savegame.sav", "r")
+    except:
+        f = open("savegame.sav", "w")
+        f.write("")
+        f.close
+        f = open("savegame.sav", "w")
+    base64_string = f.read()
+    base64_bytes = base64_string.encode("ascii")
+
+    savegame_bytes = base64.b64decode(base64_bytes)
+    savegame_string = savegame_bytes.decode("ascii")
+    json_acceptable_string = savegame_string.replace("'", "\"")
+    savegame = json.loads(json_acceptable_string)
+    try:
+        cash = savegame["cash"]
+    except:
+        pass
+
 class Gameobj:
 
     def __init__(self, x_pos, y_pos, image, is_background, is_collectable = False):
@@ -112,6 +162,7 @@ class Button:
 
 
 def change_to_game_scene():
+    save()
     buttons.clear()
     global is_awaiting_cannon_angle_stop
     is_awaiting_cannon_angle_stop = True
@@ -147,30 +198,35 @@ def change_to_game_scene():
     draw_scene("game")
 
 def change_to_settings_scene():
+    save()
     buttons.clear()
     global is_in_game
     is_in_game = False
     draw_scene("settings")
 
 def change_to_upgrades_scene():
+    save()
     buttons.clear()
     global is_in_game
     is_in_game = False
     draw_scene("upgrades")
 
 def change_to_stats_scene():
+    save()
     buttons.clear()
     global is_in_game
     is_in_game = False
     draw_scene("stats")
 
 def change_to_main_menu():
+    save()
     buttons.clear()
     global is_in_game
     is_in_game = False
     draw_scene("mainmenu")
 
 def quitgame():
+    save()
     exit_game()
 
 
@@ -369,8 +425,12 @@ def draw_scene(screentype):
         #Raketenboost => Ein Boost um sich bisschen nach vorne zu boosten
         #Raketenboost cooldown verringern
         #Raketenboost besser machen
+        WIN.fill((COLORS["gray"]))
+        
 
-        pass
+
+        backButton = Button("Back", (WIDTH * 0.05, HEIGHT - HEIGHT * 0.15), 80, change_to_main_menu)
+        backButton.show()
 
     elif screentype == "settings":
         #TODO: Einstellungen hinzufügen
@@ -438,4 +498,5 @@ def main():
     exit_game()
 
 if __name__ == "__main__":
+    load()
     main()
