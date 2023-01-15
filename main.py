@@ -2,7 +2,11 @@ import pygame
 import os
 import random
 import json
-import base64
+
+#TODO: Menü schöner machen
+#TODO: Soundeffekte einbauen
+#TODO: Musik einbauen
+#TODO: Übersetzungen einbauen
 
 COLORS = {
     "gray" : (105, 105, 105),
@@ -108,8 +112,6 @@ upgrades = {
 
 def save():
     #TODO: Speichern einbauen
-    #Dinge die gespeichert werden sollen:
-    #Geld
     #Einstellungen
     #Alle statistiken
     global cash
@@ -448,11 +450,6 @@ def draw_scene(screentype):
 
     elif screentype == "upgrades":
         #TODO Upgrades hinzufügen
-        #Upgrade Ideen:
-        #Bessere Kanone => Mehr CannonPower pro Klicken
-        #Ergodynamischerer Pinguin => Weniger Luftwiederstand
-        #Anti-Gravitations-Schuhe => Weniger Anziehungskraft
-        #Mehr Münzen
         #Raketenboost => Ein Boost um sich bisschen nach vorne zu boosten
         #Raketenboost cooldown verringern
         #Raketenboost besser machen
@@ -570,7 +567,7 @@ def draw_scene(screentype):
         WIN.blit(text, (WIDTH * 0.05, HEIGHT * 0.77))
 
         font = pygame.font.SysFont("Arial", 60)
-        text = font.render(f"Your Couins: {cash}", 1, pygame.Color("White"))
+        text = font.render(f"Your Coins: {cash}", 1, pygame.Color("White"))
         WIN.blit(text, (WIDTH * 0.05, HEIGHT * 0.01))
 
 
