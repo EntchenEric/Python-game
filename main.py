@@ -369,9 +369,29 @@ def draw_scene(screentype):
         #Raketenboost => Ein Boost um sich bisschen nach vorne zu boosten
         #Raketenboost cooldown verringern
         #Raketenboost besser machen
-        
 
+        pass
 
+    elif screentype == "settings":
+        #TODO: Einstellungen hinzufügen
+        #Dinge die eingestellt werden müssen:
+        #Audio
+        #Auflösung
+        #Fullscreen, Windowed und Borderless
+        #
+        pass
+
+    elif screentype == "stats":
+        #TODO: Stats einbauen
+        #Dinge die getrackt werden sollen:
+        #Weiteste distanz
+        #höchste distanz
+        #male geflogen
+        #gesammte distanz
+        #gesammt geld gesammelt
+        #beste geschwindigkeit
+        #
+        pass
 
 
 def exit_game():
