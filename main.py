@@ -7,6 +7,7 @@ import json
 #TODO: Soundeffekte einbauen
 #TODO: Musik einbauen
 #TODO: Übersetzungen einbauen
+#TODO: bei Rocketboost balken einfügen
 
 COLORS = {
     "gray" : (105, 105, 105),
@@ -62,6 +63,8 @@ is_grounded = False
 finalrot = 0
 coins_this_round = 0
 cash = 0
+rocketboostCooldown = 0
+dropdowns = []
 
 penguincords = (0, 0)
 
@@ -139,24 +142,56 @@ def load():
         raise
     
 
-class Gameobj:
 
-    def __init__(self, x_pos, y_pos, image, is_background, is_collectable = False):
-        self.x_pos = x_pos
-        self.y_pos = y_pos
-        self.image = image
-        self.is_background = is_background
-        self.is_collectable = is_collectable
+class DropDown():
 
-    def draw_if_needed(self):
-        global coordinates_now
-        if self.x_pos > coordinates_now[0] - WIDTH * 0.2 and self.x_pos < coordinates_now[0] + WIDTH + WIDTH * 0.2 and self.y_pos > coordinates_now[1] * HEIGHT * 0.2 and self.y_pos < coordinates_now[1] + HEIGHT + HEIGHT * 0.2:
-            x_pos = self.x_pos - coordinates_now[0]
-            y_pos = self.y_pos - coordinates_now[1]
-            WIN.blit(self.image, (x_pos, y_pos))
+    def __init__(self, color_menu, color_option, x, y, w, h, font, main, options):
+        self.color_menu = color_menu
+        self.color_option = color_option
+        self.rect = pygame.Rect(x, y, w, h)
+        self.font = font
+        self.main = main
+        self.options = options
+        self.draw_menu = False
+        self.menu_active = False
+        self.active_option = -1
 
+    def draw(self, surf):
+        pygame.draw.rect(surf, self.color_menu[self.menu_active], self.rect, 0)
+        msg = self.font.render(self.main, 1, (0, 0, 0))
+        surf.blit(msg, msg.get_rect(center = self.rect.center))
 
+        if self.draw_menu:
+            for i, text in enumerate(self.options):
+                rect = self.rect.copy()
+                rect.y += (i+1) * self.rect.height
+                pygame.draw.rect(surf, self.color_option[1 if i == self.active_option else 0], rect, 0)
+                msg = self.font.render(text, 1, (0, 0, 0))
+                surf.blit(msg, msg.get_rect(center = rect.center))
 
+    def update(self, event_list):
+        mpos = pygame.mouse.get_pos()
+        self.menu_active = self.rect.collidepoint(mpos)
+        
+        self.active_option = -1
+        for i in range(len(self.options)):
+            rect = self.rect.copy()
+            rect.y += (i+1) * self.rect.height
+            if rect.collidepoint(mpos):
+                self.active_option = i
+                break
+
+        if not self.menu_active and self.active_option == -1:
+            self.draw_menu = False
+
+        for event in event_list:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.menu_active:
+                    self.draw_menu = not self.draw_menu
+                elif self.draw_menu and self.active_option >= 0:
+                    self.draw_menu = False
+                    return self.active_option
+        return -1
 class Button:
 
     def __init__(self, text, pos, font, clickevent, bg = "black"):
@@ -278,7 +313,6 @@ def draw_scene(screentype):
         statsbutton.show()
         quitbutton = Button("Quit", (WIDTH * 0.01, HEIGHT * 0.85), 80, quitgame)
         quitbutton.show()
-    
 
     elif screentype == "game":
         global is_in_game
@@ -449,10 +483,6 @@ def draw_scene(screentype):
             PenguinDistanceVel = cannon_power + 30
 
     elif screentype == "upgrades":
-        #TODO Upgrades hinzufügen
-        #Raketenboost => Ein Boost um sich bisschen nach vorne zu boosten
-        #Raketenboost cooldown verringern
-        #Raketenboost besser machen
         WIN.fill((COLORS["gray"]))
         
         def upgradecannon():
@@ -544,7 +574,6 @@ def draw_scene(screentype):
                 upgrades["rocketboostcooldown"]["level"] += 1
                 change_to_upgrades_scene()
 
-
         btn = Button(f"less Rocketboost cooldown", (WIDTH * 0.55, HEIGHT * 0.5), 60, lessrocketboostcooldown)
         btn.show()
         font = pygame.font.SysFont("Arial", 60)
@@ -575,14 +604,25 @@ def draw_scene(screentype):
         backButton = Button("Back", (WIDTH * 0.05, HEIGHT - HEIGHT * 0.15), 80, change_to_main_menu)
         backButton.show()
         
-
     elif screentype == "settings":
         #TODO: Einstellungen hinzufügen
         #Dinge die eingestellt werden müssen:
         #Audio
         #Auflösung
         #Fullscreen, Windowed und Borderless
-        #
+        WIN.fill((COLORS["gray"]))
+        COLOR_INACTIVE = (100, 80, 255)
+        COLOR_ACTIVE = (100, 200, 255)
+        COLOR_LIST_INACTIVE = (255, 100, 100)
+        COLOR_LIST_ACTIVE = (255, 150, 150)
+        list1 = DropDown(
+        [COLOR_INACTIVE, COLOR_ACTIVE],
+        [COLOR_LIST_INACTIVE, COLOR_LIST_ACTIVE],
+        50, 50, 200, 50, 
+        pygame.font.SysFont(None, 30), 
+        "Select Mode", ["Calibration", "Test"])
+        list1.draw(WIN)
+        dropdowns.append(list1)
         pass
 
     elif screentype == "stats":
@@ -606,7 +646,12 @@ def main():
     draw_scene(screentype="mainmenu")
     RUN = True
     while RUN:
-        for event in pygame.event.get():
+        eventlist = pygame.event.get()
+        for dropdown in dropdowns:
+            selected_option = dropdown.update(eventlist)
+            if selected_option >= 0:
+                dropdown.main = dropdown.options[selected_option]
+        for event in eventlist:
             keys = pygame.key.get_pressed()
             if event.type == pygame.QUIT:
                 RUN = False
@@ -627,6 +672,20 @@ def main():
                         print("Kraft wird erhöht.")
                         global cannon_power
                         cannon_power += upgrades["bettercannon"]["level"]
+
+            if is_awaiting_cannon_power_spam == False and is_awaiting_cannon_angle_stop == False:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        if upgrades["rocketboost"]["unlocked"]:
+                            global rocketboostCooldown
+                            if rocketboostCooldown > 0:
+                                global PenguinDistanceVel
+                                global PenguinHeightVel
+                                PenguinDistanceVel += 10 * upgrades["strongerrocketboost"]["level"]
+                                PenguinHeightVel += 2 * upgrades["strongerrocketboost"]["level"]
+                                rocketboostCooldown = 120 * 60 * (1 / upgrades["rocketboostcooldown"]["level"]) 
+                            else:
+                                rocketboostCooldown -= 1
 
 
         if is_in_game:

@@ -1,60 +1,87 @@
 import pygame as pg
 
+class DropDown():
 
-def rotate(surface, angle, pivot, offset):
-    """Rotate the surface around the pivot point.
+    def __init__(self, color_menu, color_option, x, y, w, h, font, main, options):
+        self.color_menu = color_menu
+        self.color_option = color_option
+        self.rect = pg.Rect(x, y, w, h)
+        self.font = font
+        self.main = main
+        self.options = options
+        self.draw_menu = False
+        self.menu_active = False
+        self.active_option = -1
 
-    Args:
-        surface (pygame.Surface): The surface that is to be rotated.
-        angle (float): Rotate by this angle.
-        pivot (tuple, list, pygame.math.Vector2): The pivot point.
-        offset (pygame.math.Vector2): This vector is added to the pivot.
-    """
-    rotated_image = pg.transform.rotozoom(surface, -angle, 1)  # Rotate the image.
-    rotated_offset = offset.rotate(angle)  # Rotate the offset vector.
-    # Add the offset vector to the center/pivot point to shift the rect.
-    rect = rotated_image.get_rect(center=pivot+rotated_offset)
-    return rotated_image, rect  # Return the rotated image and shifted rect.
+    def draw(self, surf):
+        pg.draw.rect(surf, self.color_menu[self.menu_active], self.rect, 0)
+        msg = self.font.render(self.main, 1, (0, 0, 0))
+        surf.blit(msg, msg.get_rect(center = self.rect.center))
 
+        if self.draw_menu:
+            for i, text in enumerate(self.options):
+                rect = self.rect.copy()
+                rect.y += (i+1) * self.rect.height
+                pg.draw.rect(surf, self.color_option[1 if i == self.active_option else 0], rect, 0)
+                msg = self.font.render(text, 1, (0, 0, 0))
+                surf.blit(msg, msg.get_rect(center = rect.center))
+
+    def update(self, event_list):
+        mpos = pg.mouse.get_pos()
+        self.menu_active = self.rect.collidepoint(mpos)
+        
+        self.active_option = -1
+        for i in range(len(self.options)):
+            rect = self.rect.copy()
+            rect.y += (i+1) * self.rect.height
+            if rect.collidepoint(mpos):
+                self.active_option = i
+                break
+
+        if not self.menu_active and self.active_option == -1:
+            self.draw_menu = False
+
+        for event in event_list:
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                if self.menu_active:
+                    self.draw_menu = not self.draw_menu
+                elif self.draw_menu and self.active_option >= 0:
+                    self.draw_menu = False
+                    return self.active_option
+        return -1
 
 pg.init()
-screen = pg.display.set_mode((640, 480))
 clock = pg.time.Clock()
-BG_COLOR = pg.Color('gray12')
-# The original image will never be modified.
-IMAGE = pg.Surface((140, 60), pg.SRCALPHA)
-pg.draw.polygon(IMAGE, pg.Color('dodgerblue3'), ((0, 0), (140, 30), (0, 60)))
-# Store the original center position of the surface.
-pivot = [200, 250]
-# This offset vector will be added to the pivot point, so the
-# resulting rect will be blitted at `rect.topleft + offset`.
-offset = pg.math.Vector2(50, 0)
-angle = 0
+screen = pg.display.set_mode((640, 480))
 
-running = True
-while running:
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            running = False
+COLOR_INACTIVE = (100, 80, 255)
+COLOR_ACTIVE = (100, 200, 255)
+COLOR_LIST_INACTIVE = (255, 100, 100)
+COLOR_LIST_ACTIVE = (255, 150, 150)
 
-    keys = pg.key.get_pressed()
-    if keys[pg.K_d] or keys[pg.K_RIGHT]:
-        angle += 1
-    elif keys[pg.K_a] or keys[pg.K_LEFT]:
-        angle -= 1
-    if keys[pg.K_f]:
-        pivot[0] += 2
+list1 = DropDown(
+    [COLOR_INACTIVE, COLOR_ACTIVE],
+    [COLOR_LIST_INACTIVE, COLOR_LIST_ACTIVE],
+    50, 50, 200, 50, 
+    pg.font.SysFont(None, 30), 
+    "Select Mode", ["Calibration", "Test"])
 
-    # Rotated version of the image and the shifted rect.
-    rotated_image, rect = rotate(IMAGE, angle, pivot, offset)
-
-    # Drawing.
-    screen.fill(BG_COLOR)
-    screen.blit(rotated_image, rect)  # Blit the rotated image.
-    pg.draw.circle(screen, (30, 250, 70), pivot, 3)  # Pivot point.
-    pg.draw.rect(screen, (30, 250, 70), rect, 1)  # The rect.
-    pg.display.set_caption('Angle: {}'.format(angle))
-    pg.display.flip()
+run = True
+while run:
     clock.tick(30)
 
+    event_list = pg.event.get()
+    for event in event_list:
+        if event.type == pg.QUIT:
+            run = False
+
+    selected_option = list1.update(event_list)
+    if selected_option >= 0:
+        list1.main = list1.options[selected_option]
+
+    screen.fill((255, 255, 255))
+    list1.draw(screen)
+    pg.display.flip()
+    
 pg.quit()
+exit()
