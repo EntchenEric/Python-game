@@ -18,7 +18,7 @@ COLORS = {
     "nightsky" : (7, 11, 52)
 }
 pygame.init()
-WIDTH, HEIGHT = 1500, 844
+WIDTH, HEIGHT = 1440, 900
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Try to fly")
 font = pygame.font.SysFont("Arial", 20) 
@@ -29,17 +29,18 @@ CANNON_WHEEL_IMAGE = pygame.image.load(os.path.join("Assets", "CannonWheel.png")
 CANNON_BARREL_IMAGE = pygame.image.load(os.path.join("Assets", "CannonBarrel.png"))
 
 CANNON_FUSE_IMAGE = pygame.image.load(os.path.join("Assets", "CannonFuse.png"))
-CANNON_WHEEL = pygame.transform.scale(CANNON_WHEEL_IMAGE, (CANNONWIDTH, CANNONHEIGHT))
+CANNON_WHEEL = pygame.transform.smoothscale(CANNON_WHEEL_IMAGE, (CANNONWIDTH, CANNONHEIGHT))
 FPS = 60
 
 STARWIDTH, STARHEIGHT = 10, 10
 COINWIDTH, COINHEIGHT = 50, 50
 
-STAR = pygame.transform.scale(pygame.image.load(os.path.join("Assets", "Star.png")), (STARWIDTH, STARHEIGHT))
-COIN = pygame.transform.scale(pygame.image.load(os.path.join("Assets", "Silvercoin.png")), (COINWIDTH, COINHEIGHT))
+STAR = pygame.transform.smoothscale(pygame.image.load(os.path.join("Assets", "Star.png")), (STARWIDTH, STARHEIGHT))
+COIN = pygame.transform.smoothscale(pygame.image.load(os.path.join("Assets", "Silvercoin.png")), (COINWIDTH, COINHEIGHT))
 
 rotationmodifyer = 1
 is_in_game = False
+is_in_settings = False
 Ingame_Cannon_Rotation = 30
 is_awaiting_cannon_angle_stop = False
 has_cannon_angle_stopped = False
@@ -47,11 +48,12 @@ cannon_power_timer = 3 * FPS
 is_awaiting_cannon_power_spam = False
 cannon_power = 0
 has_shot = False
+is_fullscreen = False
 
 
 PENGUINWIDTH, PENGUINHEIGHT = 100, 200
 PENGUIN_IMAGE = pygame.image.load(os.path.join("Assets", "Penguin.png"))
-PENGUIN = pygame.transform.scale(PENGUIN_IMAGE, (PENGUINWIDTH, PENGUINHEIGHT))
+PENGUIN = pygame.transform.smoothscale(PENGUIN_IMAGE, (PENGUINWIDTH, PENGUINHEIGHT))
 
 GRAVITATION = 0.3
 PenguinDistance = 0
@@ -145,7 +147,7 @@ def load():
 
 class DropDown():
 
-    def __init__(self, color_menu, color_option, x, y, w, h, font, main, options):
+    def __init__(self, color_menu, color_option, x, y, w, h, font, main, options, fun):
         self.color_menu = color_menu
         self.color_option = color_option
         self.rect = pygame.Rect(x, y, w, h)
@@ -155,6 +157,7 @@ class DropDown():
         self.draw_menu = False
         self.menu_active = False
         self.active_option = -1
+        self.fun = fun
 
     def draw(self, surf):
         pygame.draw.rect(surf, self.color_menu[self.menu_active], self.rect, 0)
@@ -190,8 +193,12 @@ class DropDown():
                     self.draw_menu = not self.draw_menu
                 elif self.draw_menu and self.active_option >= 0:
                     self.draw_menu = False
+                    self.fun(self.active_option)
                     return self.active_option
         return -1
+
+
+
 class Button:
 
     def __init__(self, text, pos, font, clickevent, bg = "black"):
@@ -295,7 +302,53 @@ def quitgame():
     save()
     exit_game()
 
+def change_resolution(id):
+    global HEIGHT
+    global WIDTH
+    global WIN
+    if id == 0:
+        WIDTH = 640
+        HEIGHT = 360
+    elif id == 1:
+        WIDTH = 667
+        HEIGHT = 375
+    elif id == 2:
+        WIDTH = 869
+        HEIGHT = 414
+    elif id == 3:
+        WIDTH = 1280
+        HEIGHT = 720
+    elif id == 4:
+        WIDTH = 1366
+        HEIGHT = 768
+    elif id == 5:
+        WIDTH = 1440
+        HEIGHT = 900
+    elif id == 6:
+        WIDTH = 1536
+        HEIGHT = 864
+    elif id == 7:
+        WIDTH = 1920
+        HEIGHT = 1080
+    elif id == 8:
+        WIDTH = 5120
+        HEIGHT = 1440
+    if is_fullscreen:
+        WIN = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+    else:
+        WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 
+    draw_scene("settings")
+
+def fullscreen():
+    global WIN
+    global is_fullscreen
+    if is_fullscreen:
+        is_fullscreen = False
+        WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+    else:
+        is_fullscreen = True
+        WIN = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 
 def draw_scene(screentype):
     global cash
@@ -605,11 +658,15 @@ def draw_scene(screentype):
         backButton.show()
         
     elif screentype == "settings":
+        dropdowns.clear()
+        buttons.clear()
         #TODO: Einstellungen hinzufügen
         #Dinge die eingestellt werden müssen:
         #Audio
         #Auflösung
         #Fullscreen, Windowed und Borderless
+        global is_in_settings
+        is_in_settings = True
         WIN.fill((COLORS["gray"]))
         COLOR_INACTIVE = (100, 80, 255)
         COLOR_ACTIVE = (100, 200, 255)
@@ -618,11 +675,13 @@ def draw_scene(screentype):
         list1 = DropDown(
         [COLOR_INACTIVE, COLOR_ACTIVE],
         [COLOR_LIST_INACTIVE, COLOR_LIST_ACTIVE],
-        50, 50, 200, 50, 
-        pygame.font.SysFont(None, 30), 
-        "Select Mode", ["Calibration", "Test"])
-        list1.draw(WIN)
+        int(WIDTH * 0.03), int(HEIGHT * 0.03), int(WIDTH * 0.15), int(HEIGHT * 0.07), 
+        pygame.font.SysFont(None, int(WIDTH * 0.03)), 
+        "resolution", ["360×640", "375×667", "414×896", "1280x720", "1366x768", "1440x900", "1536x864", "1920x1080", "5120x1440"], change_resolution)
         dropdowns.append(list1)
+        btn = Button("fullscreen", (int(WIDTH * 0.4), int(HEIGHT * 0.03)), int(WIDTH * 0.03), fullscreen)
+        buttons.append(btn)
+        
         pass
 
     elif screentype == "stats":
@@ -646,13 +705,22 @@ def main():
     draw_scene(screentype="mainmenu")
     RUN = True
     while RUN:
+        if is_in_settings:
+            #WIN.fill(COLORS["gray"])
+            for button in buttons:
+                button.show()
         eventlist = pygame.event.get()
+
+        
         for dropdown in dropdowns:
+            dropdown.draw(WIN)
             selected_option = dropdown.update(eventlist)
             if selected_option >= 0:
                 dropdown.main = dropdown.options[selected_option]
+        
+        
+        
         for event in eventlist:
-            keys = pygame.key.get_pressed()
             if event.type == pygame.QUIT:
                 RUN = False
             for button in buttons:
